@@ -109,7 +109,7 @@ int BasicCPU::ID()
 	//		grupo. Para 'add w1, w1, w0' deve-se chamar 'decodeDataProcReg()'.
 	
 	int group = IR & 0x1E000000; // bits 28-25
-	
+
 	switch (group)
 	{
 		//100x Data Processing -- Immediate
@@ -118,8 +118,15 @@ int BasicCPU::ID()
 			fpOP = false;
 			return decodeDataProcImm();
 			break;
+		
+		
 		// case TODO
 		// x101 Data Processing -- Register on page C4-278
+		case 0x1a000000: // x = 1
+		case 0x0a000000: // x = 0
+			fpOP = false;
+			return decodeDataProcReg();
+			break;
 		default:
 			return 1; // instrução não implementada
 	}
@@ -224,16 +231,44 @@ int BasicCPU::decodeLoadStore() {
  *		   1: se a instrução não estiver implementada.
  */
 int BasicCPU::decodeDataProcReg() {
+unsigned int n,d,m;
 	// TODO
 	//		acrescentar um switch no estilo do switch de decodeDataProcImm,
 	//		e implementar APENAS PARA A INSTRUÇÃO A SEGUIR:
 	//				'add w1, w1, w0'
-	//		que aparece na linha 43 de isummation.S e no endereço 0x68
+	//		que aparece na linha 40 de isummation.S e no endereço 0x74
 	//		de txt_isummation.o.txt.
-	
-	
+	switch(IR & 0xFF200000){
+		
+		case 0x0B000000:
+			//ADD (shifted register) - 32-bit variant on page C6.2.3
+
+			//ler A e B
+			
+			m = (IR & 0X001F0000);
+			
+			n = (IR & 0X000003E0) >> 5;
+			if (n == 31) {
+				A = SP;
+			} else {
+				A = getX(n); // 64-bit variant
+			}
+			B = getX(m);
+
+			// registrador destino
+			d = (IR & 0X0000001F);
+			if (d == 31) {
+				Rd = &SP;
+			} else {
+				Rd = &(R[d]);
+			}
+
+			return 0;
+		default:
+			return 1;
+		
+	}
 	// instrução não implementada
-	return 1;
 }
 
 /**
