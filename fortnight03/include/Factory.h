@@ -35,49 +35,14 @@
 
 #pragma once
 
+#include "config.h"
 #include "Memory.h"
-#include <string>
-#include <fstream>
+#include "Processor.h"
 
-using namespace std;
-
-class SimpleMemory : public Memory
+class Factory
 {
-public:
-	SimpleMemory(int size);
-	~SimpleMemory();
-
-	void loadBinary(std::string filename);
-	void writeBinaryAsText (std::string basename);
-
-	/**
-	 * Lê uma instrução de 32 bits considerando um endereçamento em bytes.
-	 */
-	unsigned int readInstruction32(unsigned long address);
-
-	/**
-	 * Lê um dado de 32 bits considerando um endereçamento em bytes.
-	 */
-	int readData32(unsigned long address);
-
-	/**
-	 * Lê um dado de 64 bits considerando um endereçamento em bytes.
-	 */
-	long readData64(unsigned long address);
-	
-	/**
-	 * Escreve um dado (value) de 32 bits considerando um endereçamento em bytes.
-	 */
-	void writeData32(unsigned long address, int value);
-
-	/**
-	 * Escreve um dado (value) de 64 bits considerando um endereçamento em bytes.
-	 */
-	void writeData64(unsigned long address, long value);
-
-protected:
-	char* data;        //memory data
-	unsigned short fileSize;    //size of the loaded binary file
-
+	public:		
+		static Memory* createMemory();
+		static Processor* createProcessor(Memory* memory);
 };
 

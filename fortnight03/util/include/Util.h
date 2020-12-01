@@ -1,16 +1,10 @@
 /* ----------------------------------------------------------------------------
 
-    (EN) BasicCPUTest - test class for BasicCPU. Allows access to registers
-	and protected methods.
-		
-	armethyst - A simple ARM Simulator written in C++ for Computer Architecture
+    (EN) armethyst - A simple ARM Simulator written in C++ for Computer Architecture
     teaching purposes. Free software licensed under the MIT License (see license
     below).
 
-    (PT) BasicCPUTest - classe de teste de BasicCPU. Permite acesso aos
-	registradores e métodos protegidos.
-    
-	armethyst - Um simulador ARM simples escrito em C++ para o ensino de
+    (PT) armethyst - Um simulador ARM simples escrito em C++ para o ensino de
     Arquitetura de Computadores. Software livre licenciado pela MIT License
     (veja a licença, em inglês, abaixo).
 
@@ -39,48 +33,35 @@
    ----------------------------------------------------------------------------
 */
 
-#pragma once
+#include <cstdint>
 
-#include "BasicCPU.h"
-#include "Memory.h"
-
-class BasicCPUTest: public BasicCPU
+class Util
 {
 	public:
-		BasicCPUTest(Memory *memory);
-		
-		// registers
-		void setSP(uint64_t address);
-		void setW(int n, uint32_t value);
-		void setX(int n, uint64_t value);
-		void setS(int n, float value);
 
-		// flags
-		void resetFlags();
-
-		// IF
-		uint32_t getIR();
-		void runIF();
+		/**
+		 * Look at a 32-bit floating point value as a 64-bit unsigned
+		 * integer without conversion (the binary code remains unchanged
+		 * and the number is extended to 64 bits with 32 zeros left).
+		 */
+		static uint64_t floatAsUint64Low(float value);
 		
-		// ID
-		int runID();
-		ALUctrlFlag getALUctrl();
-		MEMctrlFlag getMEMctrl();
-		WBctrlFlag getWBctrl();
-		uint64_t getA();
-		uint64_t getB();
-
-		// EX
-		int runEXF();
-		int runEXI();
-		uint64_t getALUout();
+		/**
+		 * Look at the lower 32 bits of a 64-bit unsigned integer as a
+		 * 32-bit floating point value without conversion (the binary
+		 * code remains unchanged).
+		 */
+		static float uint64LowAsFloat(uint64_t value);
+	
+		/**
+		 * Look at a 64-bit floating point value as a 64-bit unsigned
+		 * integer without conversion (the binary code remains unchanged).
+		 */
+		static uint64_t doubleAsUint64(double value);
 		
-		// MEM
-		int runMEM();
- 		uint64_t getMDR();
-		
-		// WB
-		int runWB();
-		uint64_t getRd();
-		
+		/**
+		 * Look at a 64-bit unsigned integer value as a 64-bit floating
+		 * point without conversion (the binary code remains unchanged).
+		 */
+		static double uint64AsDouble(uint64_t value);
 };

@@ -46,6 +46,7 @@
 #include "CPU.h"
 
 // Códigos de controle
+enum FPOpFlag {FP_UNDEF,FP_REG_128,FP_REG_64,FP_REG_32,FP_REG_16,FP_REG_8,FP_VEC_128,FP_VEC_64};
 enum ALUctrlFlag {ALU_UNDEF, ALU_NONE, ADD, SUB};
 enum MEMctrlFlag {MEM_UNDEF, MEM_NONE, READ32, WRITE32, READ64, WRITE64};
 enum WBctrlFlag {WB_UNDEF, WB_NONE, RegWrite};
@@ -63,11 +64,11 @@ class BasicCPU: public CPU
 		 */
 		 
 		// Registrador PC
-		long PC;
+		uint64_t PC;
 		
 		// Registrador SP
 		// 		Registrador SP (stack pointer), de 64 bits
-		unsigned long SP;
+		uint64_t SP;
 		
 		// Banco de registradores inteiros
 		//		Declara os registradores Rn descritos no documento
@@ -77,51 +78,88 @@ class BasicCPU: public CPU
 		//		usados como registradores de 64	bits, com nomes X0-X30 ou
 		//		podem ser usados como registradores	de 32 bits, com nomes
 		//		W0-W30.
-		unsigned long R[31];
-		unsigned long *Rd;
+		uint64_t R[31];
+		uint64_t *Rd;
 		
+		// Banco de registradores ponto flutuante
+		//	Declara os registradores Vn descritos no documento
+		// 	armV8ppB181-B182_registradores.pdf. Veja que o documento
+		// 	explica que o ARMv8 tem o conjunto de registradores
+		//	V0-V31 (portanto 32 registradores) de 128 bits, que
+		//  podem ser usados de diversas formas. Nesta versão do
+		//	armethyst o tamanho máximo suportado é de 64 bits, e
+		//	são suportados apenas as nomenclaturas D0-D31, de 64
+		//	bits, e S0-S31, de 32 bits.
+		uint64_t V[32];
+
 		/**
 		 * Lê registrador inteiro de 32 bits.
 		 */
-		int getW(int n);
+		uint32_t getW(int n);
 
 		/**
 		 * Escreve registrador inteiro de 32 bits.
 		 */
-		void setW(int n, int value);
+		void setW(int n, uint32_t value);
 
 		/**
 		 * Lê registrador inteiro de 64 bits.
 		 */
-		int getX(int n);
+		uint64_t getX(int n);
 
 		/**
 		 * Escreve registrador inteiro de 64 bits.
 		 */
-		void setX(int n, long value);
+		void setX(int n, uint64_t value);
 
+		/**
+		 * Lê registrador ponto flutuante de 32 bits.
+		 */
+		float getS(int n);
+
+		/**
+		 * Lê registrador ponto flutuante de 32 bits, sem conversão.
+		 */
+		uint32_t getSasInt(int n);
+
+		/**
+		 * Escreve registrador ponto flutuante de 32 bits.
+		 */
+		void setS(int n, float value);
+
+		/**
+		 * Lê registrador ponto flutuante de 64 bits.
+		 */
+		double getD(int n);
+
+		/**
+		 * Escreve registrador ponto flutuante de 64 bits.
+		 */
+		void setD(int n, double value);
+		
 		// Registradores auxiliares
 		
 		// IR (instruction register), 32 bits, saída do estágio de busca
 		// da instrução (IF)
-		int IR; 
+		uint32_t IR; 
 		
 		// A, 64 bits, saída 1 do estágio de decodificação da instrução (ID)
 		// (Rn lido do banco de registradores)
-		long A;
+		uint64_t A;
 		
 		// B, 64 bits, saída 2 do estágio de decodificação da instrução (ID)
 		// (Rm lido do banco de registradores ou valor imediato lido
 		// diretamente da instrução
-		long B;
+		uint64_t B;
 		
 		// ALUctrl, enum, saída 3 do estágio de decodificação da instrução (ID),
 		// armazena o código de controle da ULA.
 		ALUctrlFlag ALUctrl = ALUctrlFlag::ALU_UNDEF;
 
-		// fpOP, bool, saída 4 do estágio de decodificação da instrução (ID),
-		// informa se a operação é inteira ou ponto flutuante.
-		bool fpOP = false;
+		// fpOp, enum, saída 4 do estágio de decodificação da
+		// instrução (ID), informa o modo de operação em ponto flutuante
+		// ou FP_UNDEF, se a operação é inteira.
+		FPOpFlag fpOp = FPOpFlag::FP_UNDEF;
 
 		// MEMctrl, enum, saída 5 do estágio de decodificação da instrução
 		// (ID), informa se haverá acesso de leitura (READ), escrita (WRITE)
@@ -141,10 +179,10 @@ class BasicCPU: public CPU
 
 		// ALUout, 64 bits, saída do estágio de execução de operação
 		// inteira (EXI)
-		long ALUout;
+		uint64_t ALUout;
 
 		// MDR, 64 bits, saída do estágio de acesso à memória de dados (MEM).
-		long MDR;
+		uint64_t MDR;
 
 		/**
 		 * Caminho de dados (Datapath)
@@ -224,7 +262,7 @@ class BasicCPU: public CPU
 		/**
 		 * Métodos herdados de CPU
 		 */
-		int run(long startAddress);
+		int run(uint64_t startAddress);
 		
 	private:
 		/**

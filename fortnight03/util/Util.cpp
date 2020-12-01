@@ -1,16 +1,10 @@
 /* ----------------------------------------------------------------------------
 
-    (EN) BasicCPUTest - test class for BasicCPU. Allows access to registers
-	and protected methods.
-		
-	armethyst - A simple ARM Simulator written in C++ for Computer Architecture
+    (EN) armethyst - A simple ARM Simulator written in C++ for Computer Architecture
     teaching purposes. Free software licensed under the MIT License (see license
     below).
 
-    (PT) BasicCPUTest - classe de teste de BasicCPU. Permite acesso aos
-	registradores e métodos protegidos.
-    
-	armethyst - Um simulador ARM simples escrito em C++ para o ensino de
+    (PT) armethyst - Um simulador ARM simples escrito em C++ para o ensino de
     Arquitetura de Computadores. Software livre licenciado pela MIT License
     (veja a licença, em inglês, abaixo).
 
@@ -39,48 +33,27 @@
    ----------------------------------------------------------------------------
 */
 
-#pragma once
+#include "Util.h"
 
-#include "BasicCPU.h"
-#include "Memory.h"
-
-class BasicCPUTest: public BasicCPU
+uint64_t Util::floatAsUint64Low(float value)
 {
-	public:
-		BasicCPUTest(Memory *memory);
-		
-		// registers
-		void setSP(uint64_t address);
-		void setW(int n, uint32_t value);
-		void setX(int n, uint64_t value);
-		void setS(int n, float value);
+	return (uint64_t)(*((uint32_t *)(&value)));
+}
 
-		// flags
-		void resetFlags();
+float Util::uint64LowAsFloat(uint64_t value)
+{
+	uint32_t low_uint = 0x00000000FFFFFFFF & value;
+	float *low_fp = (float *)(&low_uint);
+	return (*low_fp);
+}
 
-		// IF
-		uint32_t getIR();
-		void runIF();
-		
-		// ID
-		int runID();
-		ALUctrlFlag getALUctrl();
-		MEMctrlFlag getMEMctrl();
-		WBctrlFlag getWBctrl();
-		uint64_t getA();
-		uint64_t getB();
+uint64_t Util::doubleAsUint64(double value)
+{
+	uint64_t *ui_point = (uint64_t *)(&value);
+	return *ui_point;
+}
 
-		// EX
-		int runEXF();
-		int runEXI();
-		uint64_t getALUout();
-		
-		// MEM
-		int runMEM();
- 		uint64_t getMDR();
-		
-		// WB
-		int runWB();
-		uint64_t getRd();
-		
-};
+double Util::uint64AsDouble(uint64_t value) {
+	double *fp = (double *)(&value);
+	return *fp;
+}
