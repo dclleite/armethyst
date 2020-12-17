@@ -127,13 +127,27 @@ int BasicCPU::ID()
 		// implementar o GRUPO A SEGUIR
 		//
 		// x111 Data Processing -- Scalar Floating-Point and Advanced SIMD on page C4-288
-
+		case 0x1e000000: //x = 1
+		case 0x0e000000: //x = 0
+			return decodeDataProcFloat();
+			break;
 		
 		// ATIVIDADE FUTURA
 		// implementar os DOIS GRUPOS A SEGUIR
 		//
 		// 101x Loads and Stores on page C4-237
+		case 0x08000000: //x = 0, x = 0;
+		case 0x0C000000: //x = 0, x = 1;
+		case 0x18000000: //x = 1, x = 0;
+		case 0x1C000000: //x = 1, x = 1;
+			return decodeLoadStore();
+			break;
+
 		// 101x Branches, Exception Generating and System instructions on page C4-237
+		case 0x14000000:
+		case 0x16000000:
+			return decodeBranches();
+			break;
 		
 		default:
 			return 1; // instrução não implementada
@@ -198,6 +212,44 @@ int BasicCPU::decodeDataProcImm() {
 			MemtoReg = false;
 			
 			return 0;
+
+		case 0x71000000:		
+			//CMP(immediate) - 64-bit variant on page C6-778
+
+			if (IR & 0x00400000) return 1; // sh = 1 nÃ£o implementado
+
+			// ler A e B
+			n = (IR & 0x000003E0) >> 5;
+			if (n == 31) {
+				A = SP;
+			} else {
+				A = getX(n); // 64-bit variant
+			}
+			imm = (IR & 0x003FFC00) >> 10;
+			B = imm;
+
+			// registrador destino
+			d = (IR & 0x0000001F);
+			if (d == 31) {
+				Rd = &SP;
+			} else {
+				Rd = &(R[d]);
+			}
+
+			// atribuir ALUctrl
+			ALUctrl = ALUctrlFlag::SUB;
+
+			// atribuir MEMctrl
+			MEMctrl = MEMctrlFlag::MEM_NONE;
+
+			// atribuir WBctrl
+			WBctrl = WBctrlFlag::WB_NONE;
+
+			// atribuir MemtoReg
+			MemtoReg = false;
+
+			return 0;
+
 		default:
 			// instrução não implementada
 			return 1;
@@ -216,6 +268,107 @@ int BasicCPU::decodeDataProcImm() {
  */
 int BasicCPU::decodeBranches() {
 	// instrução não implementada
+	int32_t imm26 = (IR & 0x03FFFFFF);
+	int32_t imm19 = (IR & 0x00FFFFE0);
+	int32_t condicao;
+	unsigned int n;
+	//switch para pegar o branch
+	switch (IR & 0xFC000000) { 
+		//000101 unconditional branch to a label on page C6-722 - verificação
+		case 0x14000000: //aplico a mascara pra ver se o que eu peguei é o que eu esperava
+			//exercício
+			// eliminação dos zeros à esquerda, casting explícito para uint64_t e retorno dos 26 bits à posição original, mas com 2 bits 0 à direita
+			B = ((int64_t)(imm26 << 6)) >> 4;
+			//declara reg a
+			A = PC; //salvo o endereço da instrução (PC) em A
+			//declara reg d
+			Rd = &PC; // salvo o endereço da instrução (PC) no registrador de destino
+
+			// Atribuição das Flags
+
+			// atribuir ALUctrl
+			//estagio de execução
+			ALUctrl = ALUctrlFlag::ADD;//adição
+			// atribuir MEMctrl
+			//estágio de acesso a memoria
+			MEMctrl = MEMctrlFlag::MEM_NONE; //none pq nao acesso a memoria
+			// atribuir WBctrl
+			//estagio de write back
+			WBctrl = WBctrlFlag::RegWrite; //onde eu vou escrever a informação, que é no registrador, por isso o "RegWrite"
+			// atribuir MemtoReg
+			//segunda pleg para o estagio WB
+			MemtoReg=false;// como a info não vem da memoria é falso
+
+			return 0;
+
+
+	}
+
+	switch(IR & 0xFF000010){
+		case 0x54000000:
+			condicao = (IR & 0x0000000F);
+			if(condicao == 13){
+				if(not(Z_flag == 0 && N_flag == V_flag)){
+					A = PC;
+					B = (((int64_t)(imm19 << 8)) >> 13) << 2;
+					Rd = &PC;
+
+			// atribuir ALUctrl
+			//estagio de execução
+			ALUctrl = ALUctrlFlag::ADD; //adição
+
+			// atribuir MEMctrl
+			//estágio de acesso a memoria
+			MEMctrl = MEMctrlFlag::MEM_NONE; //none pq nao acessa a memoria
+
+			// atribuir WBctrl
+			//estagio de write back
+			WBctrl = WBctrlFlag::RegWrite; //onde eu vou escrever a informação, que é no registrador, por isso o "RegWrite"
+
+			// atribuir MemtoReg
+			//segunda pleg para o estagio WB
+			MemtoReg=false;// como a info não vem da memoria é falso
+
+			return 0;
+			}
+		}
+
+	}		
+	switch (IR & 0xFFFFFC1F) { 
+
+		case 0xD65F0000: 
+			//C6.2.207 RET on page 1053
+			n = (((IR & 0x000003E0) << 21)>>26);
+			if(n==0){
+				A=getX(30);
+			}
+			else{
+			A = getX(n);
+			
+			B = ZR; 
+
+			Rd = &PC;
+				// salvo o endereço da instrução (PC) no registrador de destino
+				
+			// Atribuição das Flags
+
+			// atribuir ALUctrl
+			//estagio de execução
+			ALUctrl = ALUctrlFlag::ADD;//adição
+			// atribuir MEMctrl
+			//estágio de acesso a memoria
+			MEMctrl = MEMctrlFlag::MEM_NONE; //none pq nao acesso a memoria
+			// atribuir WBctrl
+			//estagio de write back
+			WBctrl = WBctrlFlag::RegWrite; //onde eu vou escrever a informação, que é no registrador, por isso o "RegWrite"
+			// atribuir MemtoReg
+			//segunda pleg para o estagio WB
+			MemtoReg=false;// como a info não vem da memoria é falso
+
+			return 0;
+		}		
+
+	}
 	return 1;
 }
 
@@ -228,6 +381,124 @@ int BasicCPU::decodeBranches() {
  */
 int BasicCPU::decodeLoadStore() {
 	// instrução não implementada
+	unsigned int n,d;
+	switch (IR & 0xFFC00000) { 
+		case 0xB9800000://LDRSW C6.2.131 Immediate (Unsigned offset) 913
+			n = (IR & 0x000003e0) >> 5;
+			if (n == 31) {
+				A = SP;
+			}
+			else {
+				A = R[n];
+			}
+			B = (IR & 0x003ffc00) >> 8; // immediate
+			Rd = &R[IR & 0x0000001F];
+
+			// atribuir ALUctrl
+			ALUctrl = ALUctrlFlag::ADD;//adição
+			// atribuir MEMctrl
+			MEMctrl = MEMctrlFlag::READ64;
+			// atribuir WBctrl
+			WBctrl = WBctrlFlag::RegWrite;
+			// atribuir MemtoReg
+			MemtoReg=true;
+
+			return 0;
+		case 0xB9400000://LDR C6.2.119 Immediate (Unsigned offset) 886 
+		//32 bits
+			n = (IR & 0x000003E0) >> 5;
+			if (n == 31) {
+				A = SP;
+			}
+			else {
+				A =R[n];
+			}
+
+			B = ((IR & 0x003FFC00) >> 10) << 2;
+
+			d = IR & 0x0000001F;
+			if (d == 31) {
+				Rd = &SP;
+			}
+			else {
+				Rd = &R[d];
+			}
+
+			// atribuir ALUctrl
+			ALUctrl = ALUctrlFlag::ADD;//adição
+			// atribuir MEMctrl
+			MEMctrl = MEMctrlFlag::READ32;
+			// atribuir WBctrl
+			WBctrl = WBctrlFlag::RegWrite;
+			// atribuir MemtoReg
+			MemtoReg=true;
+
+			return 0;
+		case 0xB9000000://STR C6.2.257 Unsigned offset 1135
+			//size = 10, 32 bit
+			n = (IR & 0x000003E0) >> 5;
+			if (n == 31) {
+				A = SP;
+			}
+			else {
+				A = R[n];
+			}
+
+			B = ((IR & 0x003FFC00) >> 10) << 2; //offset = imm12 << scale. scale == size
+
+			d = IR & 0x0000001F;
+			if (d == 31) {
+				Rd = (uint64_t*) &ZR;
+			}
+			else {
+				Rd = &R[d];
+			}
+
+			// atribuir ALUctrl
+			ALUctrl = ALUctrlFlag::ADD;//adição
+			// atribuir MEMctrl
+			MEMctrl = MEMctrlFlag::WRITE32;
+			// atribuir WBctrl
+			WBctrl = WBctrlFlag::WB_NONE;
+			// atribuir MemtoReg
+			MemtoReg=false;
+
+			return 0;
+	}
+	switch (IR & 0xFFE0FC00) {
+		//1111 1111 1110 0000 1111 1100 0000 0000
+		case 0xB8607800://LDR (Register) C6.2.121 891
+			n = (IR & 0x000003E0) >> 5;
+			if (n == 31) {
+				A = SP;
+			}
+			else {
+				A = R[n];
+			}
+
+			n = (IR & 0x001F0000) >> 16;
+			if (n == 31) {
+				B = SP << 2;
+			}
+			else {
+				B = R[n] << 2;
+			}
+
+			d = IR & 0x0000001F;
+			Rd = &R[d];
+
+			// atribuir ALUctrl
+			ALUctrl = ALUctrlFlag::ADD;//adicao
+			// atribuir MEMctrl
+			MEMctrl = MEMctrlFlag::READ32;
+			// atribuir WBctrl
+			WBctrl = WBctrlFlag::RegWrite;
+			// atribuir MemtoReg
+			MemtoReg=true;
+
+			return 0;
+
+	}
 	return 1;
 }
 
@@ -283,6 +554,18 @@ int BasicCPU::decodeDataProcReg() {
 			
 			// ATIVIDADE FUTURA:
 			// implementar informações para os estágios MEM e WB.
+			MEMctrl = MEMctrlFlag::MEM_NONE;
+			WBctrl = WBctrlFlag::RegWrite;
+			MemtoReg=false;
+			unsigned int d = (IR & 0x0000001F);
+			if (d == 31)
+			{
+				Rd = &SP;
+			}
+			else
+			{
+				Rd = &(R[d]);
+			}
 
 			return 0;
 	}
@@ -346,6 +629,38 @@ int BasicCPU::decodeDataProcFloat() {
 			MemtoReg = false;
 			
 			return 0;
+		case 0x1E202800:
+			//C7.2.159 FADD (scalar) on page C7-1346
+
+			// implementado apenas ftype='00'
+			if (IR & 0x00C00000) return 1;
+
+			fpOp = FPOpFlag::FP_REG_32;
+
+			// ler A e B
+			n = (IR & 0x000003E0) >> 5;
+			A = getSasInt(n); // 32-bit variant
+
+			m = (IR & 0x001F0000) >> 16;
+			B = getSasInt(m);
+
+			// registrador destino
+			d = (IR & 0x0000001F);
+			Rd = &(V[d]);
+
+			// atribuir ALUctrl
+			ALUctrl = ALUctrlFlag::ADD;
+
+			// atribuir MEMctrl
+			MEMctrl = MEMctrlFlag::MEM_NONE;
+
+			// atribuir WBctrl
+			WBctrl = WBctrlFlag::RegWrite;
+
+			// atribuir MemtoReg
+			MemtoReg = false;
+
+			return 0;
 
 		default:
 			// instrução não implementada
@@ -381,6 +696,9 @@ int BasicCPU::EXI()
 	{
 		case ALUctrlFlag::SUB:
 			ALUout = A - B;
+			return 0;
+		case ALUctrlFlag::ADD:
+			ALUout = A + B;
 			return 0;
 		default:
 			// Controle não implementado
@@ -422,6 +740,9 @@ int BasicCPU::EXF()
 			case ALUctrlFlag::SUB:
 				ALUout = Util::floatAsUint64Low(fA - fB);
 				return 0;
+			case ALUctrlFlag::ADD:
+				ALUout = Util::floatAsUint64Low(fA + fB);
+			return 0;
 			default:
 				// Controle não implementado
 				return 1;
